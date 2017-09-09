@@ -2,7 +2,7 @@
 VLC playlist parser for MédiaKlikk videos and video streams
 
 ## Installation
-Copy [mediaklikk.lua](mediaklikk.lua) to [VLC Lua playlist scripts](https://wiki.videolan.org/Documentation:Building_Lua_Playlist_Scripts/#Introduction).
+Copy [mediaklikk-video.lua](mediaklikk-video.lua) to [VLC Lua playlist scripts](https://wiki.videolan.org/Documentation:Building_Lua_Playlist_Scripts/#Introduction).
 
 ### Directory for all users
 * Linux: `/usr/share/vlc/lua/playlist/`
