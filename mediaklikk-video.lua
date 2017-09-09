@@ -52,24 +52,37 @@ end
 function Parser:parse()
   local pageSource = streams.readAll(vlc)
 
-  log.dbg('Extracting Player URL...')
+  log.dbg('Extracting Player URLs...')
 
-  local playerUrl = self:playerUrl(pageSource)
-  if not playerUrl then
-    return noPlaylist('could not find Player URL')
+  local playerUrls = self:playerUrls(pageSource)
+  if #playerUrls == 0 then
+    return noPlaylist('could not find any Player URL')
   end
 
-  log.dbg('Player URL:', playerUrl)
-  log.dbg('Extracting Path...')
+  log.dbg('Player URLs:', unpack(playerUrls))
+  log.dbg('Extracting Paths...')
 
-  local path = self:path(playerUrl)
-  if not path then
-    return noPlaylist('could not find Path')
+  local function findPath(playerUrl)
+    local path = self:path(playerUrl)
+    if not path then
+      log.warn('could not extract Path from', playerUrl)
+    end
+
+    return path
   end
 
-  log.dbg('Path:', path)
-  
-  return {self:playListItem(path, pageSource)}
+  local paths = tables.map(findPath, playerUrls)
+  if #paths == 0 then
+    return noPlaylist('could not find any Path')
+  end
+
+  log.dbg('Paths:', unpack(paths))
+
+  local function playListItem(path)
+    return self:playListItem(path, pageSource)
+  end
+
+  return tables.map(playListItem, paths)
 end
 
 function Parser:path(playerUrl)
@@ -80,11 +93,13 @@ function Parser:path(playerUrl)
   end
 end
 
-function VideoParser:playerUrl(pageSource)
-  local token = pageSource:match('"token":"([^"]+)"')
-  if token then
+function VideoParser:playerUrls(pageSource)
+  local function playerUrl(token)
     return protocol .. 'player.mediaklikk.hu/player/player-external-vod-full.php?hls=1&token=' .. token
   end
+
+  local tokens = tables.collect(pageSource:gmatch('"token":"([^"]+)"'))
+  return tables.map(playerUrl, tokens)
 end
 
 function VideoParser:playListItem(path, pageSource)
@@ -101,11 +116,13 @@ function VideoParser:playListItem(path, pageSource)
   }
 end
 
-function LiveStreamParser:playerUrl(pageSource)
+function LiveStreamParser:playerUrls(pageSource)
   local streamId = pageSource:match('"streamId":"([^"]+)"')
-  if streamId then
-    return protocol .. 'player.mediaklikk.hu/playernew/player.php?noflash=yes&video=' .. streamId
+  if not streamId then
+    return {}
   end
+
+  return {protocol .. 'player.mediaklikk.hu/playernew/player.php?noflash=yes&video=' .. streamId}
 end
 
 function LiveStreamParser:playListItem(path, pageSource)
@@ -134,6 +151,14 @@ tables = {
     local result = {}
     for value in iterator, state, initialValue do
       table.insert(result, value)
+    end
+    return result
+  end,
+
+  map = function(transform, values)
+    local result = {}
+    for key, value in ipairs(values) do
+      result[key] = transform(value, i, values)
     end
     return result
   end
