@@ -165,7 +165,7 @@ urls = {
 
 local function logger(vlcLog)
   return function(...)
-    vlcLog(table.concat({'mediaklikk:', ...}, ' '))
+    vlcLog(table.concat({'mediaklikk-video:', ...}, ' '))
   end
 end
 
