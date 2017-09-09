@@ -3,6 +3,11 @@ local streams
 local urls
 local log
 
+local function noPlaylist(reason)
+  log.err('Failed to create playlist:', reason)
+  return {}
+end
+
 local Object = {}
 
 function Object:new(overrides)
@@ -24,11 +29,6 @@ local parsers = {
   LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/duna%-elo'},
   LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/duna%-world%-elo'}
 }
-
-local function noPlaylist(reason)
-  log.err('Failed to create playlist:', reason)
-  return {}
-end
 
 function probe()
   return tables.some(Parser.probe, parsers)
