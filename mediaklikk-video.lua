@@ -111,8 +111,7 @@ function VideoParser:playListItem(path, pageSource)
     path = path,
     title = findProperty('title'),
     description = findProperty('description'),
-    arturl = findProperty('image'),
-    url = findProperty('url')
+    arturl = urls.normalize(findProperty('image'))
   }
 end
 
@@ -128,8 +127,7 @@ end
 function LiveStreamParser:playListItem(path, pageSource)
   return {
     path = path,
-    title = pageSource:match('<title>(.-)</title>'),
-    url = protocol .. vlc.path
+    title = pageSource:match('<title>(.-)</title>')
   }
 end
 
