@@ -87,7 +87,7 @@ end
 
 function Parser:path(playerUrl)
   local playerPageSource = streams.readAll(vlc.stream(playerUrl))
-  local path = playerPageSource:match('"file": *"([^"]+)"')
+  local path = playerPageSource:match('"file":%s*"(.-)"')
   if path then
     return urls.normalize(path)
   end
@@ -98,13 +98,13 @@ function VideoParser:playerUrls(pageSource)
     return protocol .. 'player.mediaklikk.hu/player/player-external-vod-full.php?hls=1&token=' .. token
   end
 
-  local tokens = tables.collect(pageSource:gmatch('"token":"([^"]+)"'))
+  local tokens = tables.collect(pageSource:gmatch('"token":%s*"(.-)"'))
   return tables.map(playerUrl, tokens)
 end
 
 function VideoParser:playListItem(path, pageSource)
   local function findProperty(property)
-    return pageSource:match('<meta property="og:' .. property .. '" content="([^"]+)"/>')
+    return pageSource:match('<meta%s+property=["\']og:' .. property .. '["\']%s+content=["\'](.-)["\']%s*/?>')
   end
 
   return {
@@ -117,7 +117,7 @@ function VideoParser:playListItem(path, pageSource)
 end
 
 function LiveStreamParser:playerUrls(pageSource)
-  local streamId = pageSource:match('"streamId":"([^"]+)"')
+  local streamId = pageSource:match('"streamId":%s*"(.-)"')
   if not streamId then
     return {}
   end
@@ -128,7 +128,7 @@ end
 function LiveStreamParser:playListItem(path, pageSource)
   return {
     path = path,
-    title = pageSource:match('<title>(.+)</title>'),
+    title = pageSource:match('<title>(.-)</title>'),
     url = protocol .. vlc.path
   }
 end
