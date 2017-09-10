@@ -19,15 +19,15 @@ local VideoParser = Parser:new()
 local LiveStreamParser = Parser:new()
 
 local parsers = {
-  VideoParser:new{urlPattern = 'hirado%.hu'},
-  VideoParser:new{urlPattern = 'm4sport%.hu'},
-  VideoParser:new{urlPattern = 'mediaklikk%.hu'},
   LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/m1%-elo'},
   LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/m2%-elo'},
   LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/m4%-elo'},
   LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/m5%-elo'},
   LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/duna%-elo'},
-  LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/duna%-world%-elo'}
+  LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/duna%-world%-elo'},
+  VideoParser:new{urlPattern = 'hirado%.hu'},
+  VideoParser:new{urlPattern = 'm4sport%.hu'},
+  VideoParser:new{urlPattern = 'mediaklikk%.hu'}
 }
 
 function probe()
