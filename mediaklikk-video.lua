@@ -5,7 +5,6 @@ local log
 
 local function noPlaylist(reason)
   log.err('Failed to create playlist:', reason)
-  return {}
 end
 
 local Object = {}
