@@ -46,7 +46,7 @@ end
 local protocol = vlc.access .. '://'
 
 function Parser:probe()
-  return vlc.access:match('https?') and vlc.path:match(self.urlPattern)
+  return vlc.access:match('https?') and vlc.path:match(self.urlPattern) and not vlc.path:match('player%.mediaklikk%.hu')
 end
 
 function Parser:parse()
