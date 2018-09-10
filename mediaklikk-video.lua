@@ -1,189 +1,62 @@
-local tables
-local streams
-local urls
-local log
+local dkjson = require('dkjson')
+local log = {}
+local openGraph = {}
+local streams = {}
+local tables = {}
 
-local function noPlaylist(reason)
-  log.err('Failed to create playlist:', reason)
-end
-
-local Object = {}
-
-function Object:new(overrides)
-  return setmetatable(overrides or {}, {__index = self})
-end
-
-local Parser = Object:new()
-local VideoParser = Parser:new()
-local LiveStreamParser = Parser:new()
-
-local parsers = {
-  LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/m1%-elo'},
-  LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/m2%-elo'},
-  LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/m4%-elo'},
-  LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/m5%-elo'},
-  LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/duna%-elo'},
-  LiveStreamParser:new{urlPattern = 'mediaklikk%.hu/duna%-world%-elo'},
-  VideoParser:new{urlPattern = 'hirado%.hu'},
-  VideoParser:new{urlPattern = 'm4sport%.hu'},
-  VideoParser:new{urlPattern = 'mediaklikk%.hu'}
+local urlPatterns = {
+  'hirado%.hu',
+  'm4sport%.hu',
+  'mediaklikk%.hu'
 }
 
 function probe()
-  return tables.some(Parser.probe, parsers)
+  return vlc.access:match('https?')
+    and tables.find(urlPatterns, function(pattern)
+      return vlc.path:match(pattern)
+    end)
+    and not vlc.path:match('player%.mediaklikk%.hu')
 end
 
 function parse()
-  local parser = tables.find(Parser.probe, parsers)
-  if not parser then
-    return noPlaylist('could not find Parser')
-  end
-
-  return parser:parse()
-end
-
-local protocol = vlc.access .. '://'
-
-function Parser:probe()
-  return vlc.access:match('https?') and vlc.path:match(self.urlPattern) and not vlc.path:match('player%.mediaklikk%.hu')
-end
-
-function Parser:parse()
   local pageSource = streams.readAll(vlc)
+  local playerSetupJsons = tables.collect(pageSource:gmatch('mtva_player_manager%.player%(document%.getElementById%("player_%d+_%d+"%), (%b{})%);'));
 
-  log.dbg('Extracting Player URLs...')
+  log.dbg('Number of players:', #playerSetupJsons)
 
-  local playerUrls = self:playerUrls(pageSource)
-  if #playerUrls == 0 then
-    return noPlaylist('could not find any Player URL')
-  end
+  return tables.map(playerSetupJsons, function(playerSetupJson)
+    local playerSetup = dkjson.decode(playerSetupJson)
+    local video = playerSetup.streamId or playerSetup.token
 
-  log.dbg('Player URLs:', unpack(playerUrls))
-  log.dbg('Extracting Paths...')
-
-  local function findPath(playerUrl)
-    local path = self:path(playerUrl)
-    if not path then
-      log.warn('could not extract Path from', playerUrl)
+    if not video then
+      log.warn('Cannot find either streamId or token in player setup json:', playerSetupJson)
+      return nil
     end
 
-    return path
-  end
+    local playerUrl = vlc.access .. '://player.mediaklikk.hu/playernew/player.php?video=' .. video
 
-  local paths = tables.map(findPath, playerUrls)
-  if #paths == 0 then
-    return noPlaylist('could not find any Path')
-  end
+    log.dbg('Loading player:', playerUrl)
 
-  log.dbg('Paths:', unpack(paths))
+    local playerSource = streams.readAll(vlc.stream(playerUrl))
+    local playerOptionsJson = playerSource:match('pl.setup%( (%b{}) %);')
+    local playerOptions = dkjson.decode(playerOptionsJson)
+    local playlistItem = tables.find(playerOptions.playlist, function(playlistItem)
+      return playlistItem.type == 'hls'
+    end)
 
-  local function playListItem(path)
-    return self:playListItem(path, pageSource)
-  end
-
-  return tables.map(playListItem, paths)
-end
-
-function Parser:path(playerUrl)
-  local playerPageSource = streams.readAll(vlc.stream(playerUrl))
-  local path = playerPageSource:match('"file":%s*"(.-)"')
-  if path then
-    return urls.normalize(path)
-  end
-end
-
-function VideoParser:playerUrls(pageSource)
-  local function playerUrl(token)
-    return protocol .. 'player.mediaklikk.hu/player/player-external-vod-full.php?hls=1&token=' .. token
-  end
-
-  local tokens = tables.collect(pageSource:gmatch('"token":%s*"(.-)"'))
-  return tables.map(playerUrl, tokens)
-end
-
-function VideoParser:playListItem(path, pageSource)
-  local function findProperty(property)
-    return pageSource:match('<meta%s+property=["\']og:' .. property .. '["\']%s+content=["\'](.-)["\']%s*/?>')
-  end
-
-  return {
-    path = path,
-    title = findProperty('title'),
-    description = findProperty('description'),
-    arturl = urls.normalize(findProperty('image'))
-  }
-end
-
-function LiveStreamParser:playerUrls(pageSource)
-  local streamId = pageSource:match('"streamId":%s*"(.-)"')
-  if not streamId then
-    return {}
-  end
-
-  return {protocol .. 'player.mediaklikk.hu/playernew/player.php?noflash=yes&video=' .. streamId}
-end
-
-function LiveStreamParser:playListItem(path, pageSource)
-  return {
-    path = path,
-    title = pageSource:match('<title>(.-)</title>')
-  }
-end
-
-tables = {
-  find = function(predicate, values)
-    for key, value in ipairs(values) do
-      if predicate(value, key, values) then
-        return value, key
-      end
+    if not playlistItem then
+      log.warn('Cannot find playlist item of type hls in player options json:', playerOptionsJson)
+      return nil
     end
-  end,
 
-  some = function(predicate, values)
-    local value, key = tables.find(predicate, values)
-    return key
-  end,
-
-  collect = function(iterator, state, initialValue)
-    local result = {}
-    for value in iterator, state, initialValue do
-      table.insert(result, value)
-    end
-    return result
-  end,
-
-  map = function(transform, values)
-    local result = {}
-    for key, value in ipairs(values) do
-      result[key] = transform(value, i, values)
-    end
-    return result
-  end
-}
-
-streams = {
-  lines = function(s)
-    return s.readline, s, nil
-  end,
-
-  readAll = function(s)
-    return table.concat(tables.collect(streams.lines(s)), '\n')
-  end
-}
-
-urls = {
-  normalizations = {
-    {pattern = '\\(.)', replacement = '%1'},
-    {pattern = '^//', replacement = protocol}
-  },
-
-  normalize = function(url)
-    for i, normalization in ipairs(urls.normalizations) do
-      url = url:gsub(normalization.pattern, normalization.replacement)
-    end
-    return url
-  end
-}
+    return {
+      path = vlc.access .. ':' .. playlistItem.file,
+      title = playerSetup.title or openGraph.property(pageSource, 'title'),
+      description = openGraph.property(pageSource, 'description'),
+      arturl = (playerSetup.bgImage and vlc.access .. ':' .. playerSetup.bgImage) or openGraph.property(pageSource, 'image')
+    }
+  end)
+end
 
 local function logger(vlcLog)
   return function(...)
@@ -191,9 +64,47 @@ local function logger(vlcLog)
   end
 end
 
-log = {
-  dbg = logger(vlc.msg.dbg),
-  warn = logger(vlc.msg.warn),
-  err = logger(vlc.msg.err),
-  info = logger(vlc.msg.info)
-}
+log.dbg = logger(vlc.msg.dbg)
+log.warn = logger(vlc.msg.warn)
+log.err = logger(vlc.msg.err)
+log.info = logger(vlc.msg.info)
+
+function openGraph.property(source, property)
+  return source:match('<meta property="og:' .. property .. '" content="(.-)"/>')
+end
+
+function streams.readAll(s)
+  local function iterator(size)
+    if s == vlc then
+      return s.read(size)
+    else
+      return s:read(size)
+    end
+  end
+
+  return table.concat(tables.collect(iterator, 1024, nil));
+end
+
+function tables.find(values, predicate)
+  for key, value in pairs(values) do
+    if predicate(value, key, values) then
+      return value, key
+    end
+  end
+end
+
+function tables.collect(iterator, state, initialValue)
+  local result = {}
+  for value in iterator, state, initialValue do
+    table.insert(result, value)
+  end
+  return result
+end
+
+function tables.map(values, transform)
+  local result = {}
+  for key, value in pairs(values) do
+    result[key] = transform(value, key, values)
+  end
+  return result
+end
