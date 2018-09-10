@@ -14,10 +14,6 @@ Copy [mediaklikk-video.lua](mediaklikk-video.lua) to [VLC Lua playlist scripts](
 * Mac OS X: `~/Library/Application Support/org.videolan.vlc/lua/playlist/`
 * Windows: `%APPDATA%\vlc\lua\playlist\`
 
-## From addons.videolan.org
-
-This playlist parser is also [available on addons.videolan.org](https://addons.videolan.org/p/1190582/).
-
 ## Supported sites
 
 ### Videos
@@ -32,3 +28,7 @@ This playlist parser is also [available on addons.videolan.org](https://addons.v
 * [M5](https://www.mediaklikk.hu/m5-elo)
 * [Duna](https://www.mediaklikk.hu/duna-elo)
 * [Duna World](https://www.mediaklikk.hu/duna-world-elo)
+
+## On addons.videolan.org
+
+This playlist parser is also [available on addons.videolan.org](https://addons.videolan.org/p/1190582/).
