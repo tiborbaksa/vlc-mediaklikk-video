@@ -11,16 +11,44 @@ local urlPatterns = {
 }
 
 function probe()
-  return vlc.access:match('https?')
-    and tables.find(urlPatterns, function(pattern)
-      return vlc.path:match(pattern)
-    end)
-    and not vlc.path:match('player%.mediaklikk%.hu')
+  return vlc.access:match('https?') and tables.find(urlPatterns, function(pattern)
+    return vlc.path:match(pattern)
+  end)
 end
 
 function parse()
   local pageSource = streams.readAll(vlc)
-  local playerSetupJsons = tables.collect(pageSource:gmatch('mtva_player_manager%.player%(document%.getElementById%("player_%d+_%d+"%), (%b{})%);'));
+
+  local playerOptionsJson = pageSource:match('pl.setup%( (%b{}) %);')
+  if playerOptionsJson then
+    log.dbg('Found player options json, finding playlist item of type hls')
+
+    local playerOptions = dkjson.decode(playerOptionsJson)
+    local playlistItem = tables.find(playerOptions.playlist, function(playlistItem)
+      return playlistItem.type == 'hls'
+    end)
+
+    if not playlistItem then
+      log.warn('Cannot find playlist item of type hls in player options json:', playerOptionsJson)
+      return nil
+    end
+
+    local params = tables.map(tables.toMap(vlc.path:gmatch('[?&]([^=]+)=([^&]*)')), function(param)
+      return vlc.strings.decode_uri(param)
+    end)
+
+    return {
+      {
+        path = vlc.access .. ':' .. playlistItem.file,
+        title = params.title,
+        arturl = params.bgimage
+      }
+    }
+  end
+
+  log.dbg('Cannot find player options json, finding embedded players');
+
+  local playerSetupJsons = tables.toArray(pageSource:gmatch('mtva_player_manager%.player%(document%.getElementById%("player_%d+_%d+"%), (%b{})%);'));
 
   log.dbg('Number of players:', #playerSetupJsons)
 
@@ -33,27 +61,21 @@ function parse()
       return nil
     end
 
-    local playerUrl = vlc.access .. '://player.mediaklikk.hu/playernew/player.php?video=' .. video
+    local title = playerSetup.title or openGraph.property(pageSource, 'title')
+    local arturl = (playerSetup.bgImage and vlc.access .. ':' .. playerSetup.bgImage) or openGraph.property(pageSource, 'image')
+    local playerUrl = vlc.access .. '://player.mediaklikk.hu/playernew/player.php?video=' .. video ..
+      ((title and '&title=' .. vlc.strings.encode_uri_component(title)) or '') ..
+      ((arturl and '&bgimage=' .. vlc.strings.encode_uri_component(arturl)) or '')
 
     log.dbg('Loading player:', playerUrl)
 
-    local playerSource = streams.readAll(vlc.stream(playerUrl))
-    local playerOptionsJson = playerSource:match('pl.setup%( (%b{}) %);')
-    local playerOptions = dkjson.decode(playerOptionsJson)
-    local playlistItem = tables.find(playerOptions.playlist, function(playlistItem)
-      return playlistItem.type == 'hls'
-    end)
-
-    if not playlistItem then
-      log.warn('Cannot find playlist item of type hls in player options json:', playerOptionsJson)
-      return nil
-    end
-
     return {
-      path = vlc.access .. ':' .. playlistItem.file,
-      title = playerSetup.title or openGraph.property(pageSource, 'title'),
-      description = openGraph.property(pageSource, 'description'),
-      arturl = (playerSetup.bgImage and vlc.access .. ':' .. playerSetup.bgImage) or openGraph.property(pageSource, 'image')
+      path = playerUrl,
+      title = title,
+      arturl = arturl,
+      options = {
+        'http-referrer=' .. vlc.access .. '://' .. vlc.path
+      }
     }
   end)
 end
@@ -82,7 +104,7 @@ function streams.readAll(s)
     end
   end
 
-  return table.concat(tables.collect(iterator, 1024, nil));
+  return table.concat(tables.toArray(iterator, 1024, nil));
 end
 
 function tables.find(values, predicate)
@@ -93,10 +115,18 @@ function tables.find(values, predicate)
   end
 end
 
-function tables.collect(iterator, state, initialValue)
+function tables.toArray(iterator, state, initialValue)
   local result = {}
   for value in iterator, state, initialValue do
     table.insert(result, value)
+  end
+  return result
+end
+
+function tables.toMap(iterator, state, initialValue)
+  local result = {}
+  for key, value in iterator, state, initialValue do
+    result[key] = value
   end
   return result
 end
