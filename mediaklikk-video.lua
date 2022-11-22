@@ -21,29 +21,26 @@ function parse()
 
   local playerOptionsJson = pageSource:match('pl.setup%( (%b{}) %);')
   if playerOptionsJson then
-    log.dbg('Found player options json, finding playlist item of type hls')
+    log.dbg('Found player options json, finding playlist items of type hls')
 
     local playerOptions = dkjson.decode(playerOptionsJson)
-    local playlistItem = tables.find(playerOptions.playlist, function(playlistItem)
+    local playlistItems = tables.filter(playerOptions.playlist, function(playlistItem)
       return playlistItem.type == 'hls'
     end)
 
-    if not playlistItem then
-      log.warn('Cannot find playlist item of type hls in player options json:', playerOptionsJson)
-      return nil
-    end
+    log.dbg('Number of playlist items:', #playlistItems)
 
     local params = tables.map(tables.toMap(vlc.path:gmatch('[?&]([^=]+)=([^&]*)')), function(param)
       return vlc.strings.decode_uri(param)
     end)
 
-    return {
-      {
+    return tables.map(playlistItems, function(playlistItem)
+      return {
         path = vlc.access .. ':' .. playlistItem.file,
         title = params.title,
         arturl = params.bgimage
       }
-    }
+    end)
   end
 
   log.dbg('Cannot find player options json, finding embedded players');
@@ -135,6 +132,17 @@ function tables.map(values, transform)
   local result = {}
   for key, value in pairs(values) do
     result[key] = transform(value, key, values)
+  end
+  return result
+end
+
+
+function tables.filter(values, predicate)
+  local result = {}
+  for key, value in pairs(values) do
+    if predicate(value, key, values) then
+      result[key] = value
+    end
   end
   return result
 end
