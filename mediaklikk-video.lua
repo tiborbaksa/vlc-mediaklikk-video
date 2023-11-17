@@ -43,7 +43,7 @@ function parse()
 
     return tables.map(playlistItems, function(playlistItem)
       return {
-        path = vlc.access .. ':' .. playlistItem.file,
+        path = playlistItem.file:gsub('^//', vlc.access .. '://'),
         title = params.title,
         arturl = params.bgimage
       }
