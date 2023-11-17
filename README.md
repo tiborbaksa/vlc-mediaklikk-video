@@ -1,4 +1,4 @@
-# vlc-mediaklikk
+# vlc-mediaklikk-video
 VLC playlist parser for MédiaKlikk videos and video streams
 
 ## Installation
