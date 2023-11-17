@@ -19,9 +19,16 @@ end
 function parse()
   local pageSource = streams.readAll(vlc)
 
-  local playerOptionsJson = pageSource:match('pl.setup%( (%b{}) %);')
-  if playerOptionsJson then
-    log.dbg('Found player options json, finding playlist items of type hls')
+  if vlc.path:match('player%.mediaklikk%.hu') then
+    log.dbg('Player loaded, finding player options json')
+
+    local playerOptionsJson = pageSource:match('pl.setup%( (%b{}) %);')
+    if not playerOptionsJson then
+      log.warn('Cannot find player options json')
+      return nil
+    end
+
+    log.dbg('Finding playlist items of type hls')
 
     local playerOptions = dkjson.decode(playerOptionsJson)
     local playlistItems = tables.filter(playerOptions.playlist, function(playlistItem)
@@ -43,7 +50,7 @@ function parse()
     end)
   end
 
-  log.dbg('Cannot find player options json, finding embedded players');
+  log.dbg('Finding embedded players');
 
   local playerSetupJsons = tables.toArray(pageSource:gmatch('mtva_player_manager%.player%(document%.getElementById%("player_%d+_%d+"%), (%b{})%);'));
 
