@@ -22,9 +22,10 @@ Copy [mediaklikk-video.lua](mediaklikk-video.lua) to [VLC Lua playlist scripts](
 * [mediaklikk.hu](https://www.mediaklikk.hu/)
 
 ### Video streams
-* [M1](https://www.mediaklikk.hu/m1-elo)
+* [M1](https://hirado.hu/elo/m1)
 * [M2](https://www.mediaklikk.hu/m2-elo)
-* [M4](https://www.mediaklikk.hu/m4-elo)
+* [M4 Sport](https://m4sport.hu/elo/mtv4live)
+* [M4 Sport +](https://m4sport.hu/elo/mtv4plus)
 * [M5](https://www.mediaklikk.hu/m5-elo)
 * [Duna](https://www.mediaklikk.hu/duna-elo)
 * [Duna World](https://www.mediaklikk.hu/duna-world-elo)
