@@ -52,7 +52,7 @@ function parse()
 
   log.dbg('Finding embedded players');
 
-  local playerSetupJsons = tables.toArray(pageSource:gmatch('mtva_player_manager%.player%(document%.getElementById%("player_%d+_%d+"%), (%b{})%);'));
+  local playerSetupJsons = tables.toArray(pageSource:gmatch("loadPlayer%( 'player_%d+_%d+', (%b{}) %);"));
 
   log.dbg('Number of players:', #playerSetupJsons)
 
