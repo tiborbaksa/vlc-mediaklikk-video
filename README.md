@@ -22,13 +22,18 @@ Copy [mediaklikk-video.lua](mediaklikk-video.lua) to [VLC Lua playlist scripts](
 * [mediaklikk.hu](https://www.mediaklikk.hu/)
 
 ### Video streams
-* [M1](https://hirado.hu/elo/m1)
-* [M2](https://www.mediaklikk.hu/m2-elo)
+* [M1](https://hirado.hu/elo/mtv1live)
+* [M2](https://mediaklikk.hu/elo/mtv2live)
 * [M4 Sport](https://m4sport.hu/elo/mtv4live)
 * [M4 Sport +](https://m4sport.hu/elo/mtv4plus)
-* [M5](https://www.mediaklikk.hu/m5-elo)
-* [Duna](https://www.mediaklikk.hu/duna-elo)
-* [Duna World](https://www.mediaklikk.hu/duna-world-elo)
+* [M4 Sport 1](https://m4sport.hu/elo/m4sport1)
+* [M4 Sport 2](https://m4sport.hu/elo/m4sport2)
+* [M4 Sport 3](https://m4sport.hu/elo/m4sport3)
+* [M4 Sport 4](https://m4sport.hu/elo/m4sport4)
+* [M4 Sport 5](https://m4sport.hu/elo/m4sport5)
+* [M5](https://mediaklikk.hu/elo/mtv5live)
+* [Duna](https://mediaklikk.hu/elo/dunalive)
+* [Duna World](https://mediaklikk.hu/elo/dunaworldlive)
 
 ## On addons.videolan.org
 
